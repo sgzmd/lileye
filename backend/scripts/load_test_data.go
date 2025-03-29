@@ -131,7 +131,7 @@ func sendNotification(n Notification) error {
 		return fmt.Errorf("error reading response body: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
