@@ -7,13 +7,24 @@ import (
 	"gorm.io/gorm"
 )
 
+// NotificationStorageInterface defines the contract for notification storage
+type NotificationStorageInterface interface {
+	Create(notification *models.Notification) error
+	GetByID(id uint) (*models.Notification, error)
+	GetByDeviceID(deviceID string) ([]models.Notification, error)
+	GetByDateRange(deviceID string, start, end time.Time) ([]models.Notification, error)
+	Search(deviceID, query string) ([]models.Notification, error)
+	GetDevices() ([]models.Device, error)
+	DeleteAll() error
+}
+
 // NotificationStorage handles database operations for notifications
 type NotificationStorage struct {
 	db *gorm.DB
 }
 
 // NewNotificationStorage creates a new NotificationStorage instance
-func NewNotificationStorage(db *gorm.DB) *NotificationStorage {
+func NewNotificationStorage(db *gorm.DB) NotificationStorageInterface {
 	return &NotificationStorage{db: db}
 }
 

@@ -12,11 +12,11 @@ import (
 
 // NotificationHandler handles HTTP requests for notifications
 type NotificationHandler struct {
-	storage *storage.NotificationStorage
+	storage storage.NotificationStorageInterface
 }
 
 // NewNotificationHandler creates a new NotificationHandler instance
-func NewNotificationHandler(storage *storage.NotificationStorage) *NotificationHandler {
+func NewNotificationHandler(storage storage.NotificationStorageInterface) *NotificationHandler {
 	return &NotificationHandler{storage: storage}
 }
 

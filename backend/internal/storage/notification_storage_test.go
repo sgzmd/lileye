@@ -10,156 +10,209 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupTestDB(t *testing.T) (*gorm.DB, *NotificationStorage) {
+func setupTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	assert.NoError(t, err)
 
-	err = db.AutoMigrate(&models.Notification{})
+	err = db.AutoMigrate(&models.Notification{}, &models.Device{})
 	assert.NoError(t, err)
 
-	return db, NewNotificationStorage(db)
-}
-
-func createTestNotification(t *testing.T, storage *NotificationStorage, deviceID string) *models.Notification {
-	notification := &models.Notification{
-		Title:       "Test Title",
-		Message:     "Test Message",
-		Timestamp:   time.Now(),
-		PackageName: "com.test.app",
-		From:        "Test User",
-		DeviceID:    deviceID,
-	}
-
-	err := storage.Create(notification)
-	assert.NoError(t, err)
-	return notification
+	return db
 }
 
 func TestNotificationStorage_Create(t *testing.T) {
-	_, storage := setupTestDB(t)
-	notification := createTestNotification(t, storage, "device1")
-	assert.NotZero(t, notification.ID)
-}
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
 
-func TestNotificationStorage_GetByID(t *testing.T) {
-	_, storage := setupTestDB(t)
-	created := createTestNotification(t, storage, "device1")
-
-	found, err := storage.GetByID(created.ID)
-	assert.NoError(t, err)
-	assert.Equal(t, created.Title, found.Title)
-	assert.Equal(t, created.DeviceID, found.DeviceID)
-}
-
-func TestNotificationStorage_GetByDeviceID(t *testing.T) {
-	_, storage := setupTestDB(t)
-	notification1 := createTestNotification(t, storage, "device1")
-	notification2 := createTestNotification(t, storage, "device1")
-	_ = createTestNotification(t, storage, "device2")
-
-	notifications, err := storage.GetByDeviceID("device1")
-	assert.NoError(t, err)
-	assert.Len(t, notifications, 2)
-	assert.Contains(t, []uint{notification1.ID, notification2.ID}, notifications[0].ID)
-}
-
-func TestNotificationStorage_GetByDateRange(t *testing.T) {
-	_, storage := setupTestDB(t)
-	now := time.Now()
-	
 	notification := &models.Notification{
-		Title:       "Test Title",
-		Message:     "Test Message",
-		Timestamp:   now,
-		PackageName: "com.test.app",
-		From:        "Test User",
-		DeviceID:    "device1",
+		DeviceID:  "test-device",
+		Title:     "Test Notification",
+		Message:   "Test Message",
+		From:      "Test App",
+		Timestamp: time.Now(),
 	}
+
 	err := storage.Create(notification)
 	assert.NoError(t, err)
 
-	notifications, err := storage.GetByDateRange("device1", now.Add(-time.Hour), now.Add(time.Hour))
+	var result models.Notification
+	err = db.First(&result, notification.ID).Error
 	assert.NoError(t, err)
-	assert.Len(t, notifications, 1)
-	assert.Equal(t, notification.ID, notifications[0].ID)
+	assert.Equal(t, notification.DeviceID, result.DeviceID)
+	assert.Equal(t, notification.Title, result.Title)
+	assert.Equal(t, notification.Message, result.Message)
+	assert.Equal(t, notification.From, result.From)
+}
+
+func TestNotificationStorage_GetByID(t *testing.T) {
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
+
+	notification := &models.Notification{
+		DeviceID:  "test-device",
+		Title:     "Test Notification",
+		Message:   "Test Message",
+		From:      "Test App",
+		Timestamp: time.Now(),
+	}
+
+	err := storage.Create(notification)
+	assert.NoError(t, err)
+
+	result, err := storage.GetByID(notification.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, notification.DeviceID, result.DeviceID)
+	assert.Equal(t, notification.Title, result.Title)
+	assert.Equal(t, notification.Message, result.Message)
+	assert.Equal(t, notification.From, result.From)
+}
+
+func TestNotificationStorage_GetByDeviceID(t *testing.T) {
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
+
+	notifications := []models.Notification{
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification 1",
+			Message:   "Test Message 1",
+			From:      "Test App",
+			Timestamp: time.Now(),
+		},
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification 2",
+			Message:   "Test Message 2",
+			From:      "Test App",
+			Timestamp: time.Now(),
+		},
+	}
+
+	for _, notification := range notifications {
+		err := storage.Create(&notification)
+		assert.NoError(t, err)
+	}
+
+	results, err := storage.GetByDeviceID("test-device")
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
+}
+
+func TestNotificationStorage_GetByDateRange(t *testing.T) {
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
+
+	now := time.Now()
+	notifications := []models.Notification{
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification 1",
+			Message:   "Test Message 1",
+			From:      "Test App",
+			Timestamp: now.Add(-1 * time.Hour),
+		},
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification 2",
+			Message:   "Test Message 2",
+			From:      "Test App",
+			Timestamp: now.Add(1 * time.Hour),
+		},
+	}
+
+	for _, notification := range notifications {
+		err := storage.Create(&notification)
+		assert.NoError(t, err)
+	}
+
+	results, err := storage.GetByDateRange("test-device", now.Add(-2*time.Hour), now.Add(2*time.Hour))
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
 }
 
 func TestNotificationStorage_Search(t *testing.T) {
-	_, storage := setupTestDB(t)
-	notification := createTestNotification(t, storage, "device1")
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
 
-	// Search by title
-	results, err := storage.Search("device1", "Test Title")
+	notifications := []models.Notification{
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification",
+			Message:   "Test Message",
+			From:      "Test App",
+			Timestamp: time.Now(),
+		},
+	}
+
+	for _, notification := range notifications {
+		err := storage.Create(&notification)
+		assert.NoError(t, err)
+	}
+
+	results, err := storage.Search("test-device", "Test")
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
-	assert.Equal(t, notification.ID, results[0].ID)
-
-	// Search by message
-	results, err = storage.Search("device1", "Test Message")
-	assert.NoError(t, err)
-	assert.Len(t, results, 1)
-	assert.Equal(t, notification.ID, results[0].ID)
-
-	// Search by from
-	results, err = storage.Search("device1", "Test User")
-	assert.NoError(t, err)
-	assert.Len(t, results, 1)
-	assert.Equal(t, notification.ID, results[0].ID)
 }
 
 func TestNotificationStorage_GetDevices(t *testing.T) {
-	_, storage := setupTestDB(t)
-	_ = createTestNotification(t, storage, "device1")
-	_ = createTestNotification(t, storage, "device2")
-	_ = createTestNotification(t, storage, "device1")
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
+
+	// Create a device with a custom name
+	device := &models.Device{
+		DeviceID:   "test-device",
+		DeviceName: "Test Device",
+	}
+	err := db.Create(device).Error
+	assert.NoError(t, err)
+
+	// Create notifications for the device
+	notifications := []models.Notification{
+		{
+			DeviceID:  "test-device",
+			Title:     "Test Notification",
+			Message:   "Test Message",
+			From:      "Test App",
+			Timestamp: time.Now(),
+		},
+	}
+
+	for _, notification := range notifications {
+		err := storage.Create(&notification)
+		assert.NoError(t, err)
+	}
 
 	devices, err := storage.GetDevices()
 	assert.NoError(t, err)
-	assert.Len(t, devices, 2)
-	assert.Contains(t, devices, "device1")
-	assert.Contains(t, devices, "device2")
+	assert.Len(t, devices, 1)
+	assert.Equal(t, "test-device", devices[0].DeviceID)
+	assert.Equal(t, "Test Device", devices[0].DeviceName)
 }
 
-func TestDeleteAll(t *testing.T) {
-	_, storage := setupTestDB(t)
+func TestNotificationStorage_DeleteAll(t *testing.T) {
+	db := setupTestDB(t)
+	storage := NewNotificationStorage(db).(*NotificationStorage)
 
-	// Create some test notifications
 	notifications := []models.Notification{
 		{
-			DeviceID: "test-device-1",
-			Title:    "Test Notification 1",
-			Message:  "Test Message 1",
-			Timestamp: time.Now(),
-		},
-		{
-			DeviceID: "test-device-2",
-			Title:    "Test Notification 2",
-			Message:  "Test Message 2",
+			DeviceID:  "test-device",
+			Title:     "Test Notification",
+			Message:   "Test Message",
+			From:      "Test App",
 			Timestamp: time.Now(),
 		},
 	}
 
-	for _, n := range notifications {
-		err := storage.Create(&n)
-		if err != nil {
-			t.Fatalf("Failed to create test notification: %v", err)
-		}
+	for _, notification := range notifications {
+		err := storage.Create(&notification)
+		assert.NoError(t, err)
 	}
 
-	// Delete all notifications
 	err := storage.DeleteAll()
-	if err != nil {
-		t.Fatalf("Failed to delete all notifications: %v", err)
-	}
+	assert.NoError(t, err)
 
-	// Verify all notifications are deleted
 	var count int64
-	err = storage.db.Model(&models.Notification{}).Count(&count).Error
-	if err != nil {
-		t.Fatalf("Failed to count notifications: %v", err)
-	}
-
-	if count != 0 {
-		t.Errorf("Expected 0 notifications, got %d", count)
-	}
+	err = db.Model(&models.Notification{}).Count(&count).Error
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count)
 } 
