@@ -69,7 +69,54 @@ go test -v ./...
 
 ## API Documentation
 
-[API documentation will be added as endpoints are implemented]
+### Endpoints
+
+#### POST /api/notifications
+Create a new notification.
+
+Request body:
+```json
+{
+    "title": "Notification Title",
+    "message": "Notification Message",
+    "timestamp": "2021-01-01T00:00:00Z",
+    "package_name": "com.example.app",
+    "from": "Other User Name",
+    "device_id": "abc1234"
+}
+```
+
+#### GET /api/notifications/:id
+Get a notification by ID.
+
+#### GET /api/notifications/device/:deviceID
+Get all notifications for a specific device.
+
+#### GET /api/notifications/device/:deviceID/range
+Get notifications within a date range.
+
+Query parameters:
+- start: Start date (RFC3339 format)
+- end: End date (RFC3339 format)
+
+Example:
+```
+/api/notifications/device/abc1234/range?start=2024-03-01T00:00:00Z&end=2024-03-31T23:59:59Z
+```
+
+#### GET /api/notifications/device/:deviceID/search
+Search notifications by title, message, or from field.
+
+Query parameters:
+- q: Search query
+
+Example:
+```
+/api/notifications/device/abc1234/search?q=important
+```
+
+#### GET /api/devices
+Get a list of all unique device IDs.
 
 ## Frontend
 
@@ -78,4 +125,11 @@ The frontend is built using:
 - Tailwind CSS for styling
 - Native JavaScript for date handling
 
-[Frontend documentation will be added as components are implemented] 
+Features:
+1. Device selection
+2. Notification list view
+3. Date range filtering
+4. Search functionality
+5. Responsive design
+
+The web interface is accessible at `http://localhost:8080` 
