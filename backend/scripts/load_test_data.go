@@ -20,6 +20,7 @@ type Notification struct {
 	PackageName string    `json:"package_name"`
 	From        string    `json:"from"`
 	DeviceID    string    `json:"device_id"`
+	DeviceName  string    `json:"device_name,omitempty"`
 }
 
 type AppInfo struct {
@@ -113,6 +114,22 @@ func randomSender(senders []string) string {
 	return senders[rnd.Intn(len(senders))]
 }
 
+func waitForServer(maxRetries int, retryDelay time.Duration) error {
+	url := fmt.Sprintf("%s/", *serverURL)
+	for i := 0; i < maxRetries; i++ {
+		resp, err := http.Get(url)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return nil
+			}
+		}
+		fmt.Printf("Waiting for server to be ready (attempt %d/%d)...\n", i+1, maxRetries)
+		time.Sleep(retryDelay)
+	}
+	return fmt.Errorf("server not ready after %d attempts", maxRetries)
+}
+
 func sendNotification(n Notification) error {
 	data, err := json.Marshal(n)
 	if err != nil {
@@ -120,22 +137,40 @@ func sendNotification(n Notification) error {
 	}
 
 	url := fmt.Sprintf("%s/api/notifications", *serverURL)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
-	if err != nil {
-		return fmt.Errorf("error sending notification: %v", err)
-	}
-	defer resp.Body.Close()
+	
+	// Try up to 3 times with exponential backoff
+	for i := 0; i < 3; i++ {
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+		if err != nil {
+			if i < 2 {
+				delay := time.Duration(1<<uint(i)) * time.Second
+				fmt.Printf("Error sending notification, retrying in %v... (%v)\n", delay, err)
+				time.Sleep(delay)
+				continue
+			}
+			return fmt.Errorf("error sending notification: %v", err)
+		}
+		defer resp.Body.Close()
 
-	// Read and discard response body
-	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-		return fmt.Errorf("error reading response body: %v", err)
+		// Read and discard response body
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+			return fmt.Errorf("error reading response body: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+			if i < 2 {
+				delay := time.Duration(1<<uint(i)) * time.Second
+				fmt.Printf("Unexpected status code %d, retrying in %v...\n", resp.StatusCode, delay)
+				time.Sleep(delay)
+				continue
+			}
+			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		return nil
 	}
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	return nil
+	return fmt.Errorf("failed to send notification after 3 attempts")
 }
 
 func generateNotifications() error {
@@ -226,6 +261,13 @@ func main() {
 
 	if err := validateFlags(); err != nil {
 		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Waiting for server at %s to be ready...\n", *serverURL)
+	if err := waitForServer(10, time.Second); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		fmt.Println("Make sure the server is running with: go run cmd/server/main.go")
 		os.Exit(1)
 	}
 
