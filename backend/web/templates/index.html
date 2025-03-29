@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Notifications</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div x-data="{
+        deviceID: '',
+        devices: [],
+        notifications: [],
+        startDate: '',
+        endDate: '',
+        searchQuery: '',
+        loading: false,
+        error: '',
+
+        async init() {
+            await this.loadDevices();
+        },
+
+        async loadDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                this.devices = await response.json();
+                if (this.devices.length > 0) {
+                    this.deviceID = this.devices[0];
+                    await this.loadNotifications();
+                }
+            } catch (err) {
+                this.error = 'Failed to load devices';
+            }
+        },
+
+        async loadNotifications() {
+            if (!this.deviceID) return;
+            
+            this.loading = true;
+            try {
+                let url = `/api/notifications/device/${this.deviceID}`;
+                
+                if (this.startDate && this.endDate) {
+                    url = `/api/notifications/device/${this.deviceID}/range?start=${this.startDate}T00:00:00Z&end=${this.endDate}T23:59:59Z`;
+                } else if (this.searchQuery) {
+                    url = `/api/notifications/device/${this.deviceID}/search?q=${encodeURIComponent(this.searchQuery)}`;
+                }
+                
+                const response = await fetch(url);
+                this.notifications = await response.json();
+            } catch (err) {
+                this.error = 'Failed to load notifications';
+            } finally {
+                this.loading = false;
+            }
+        }
+    }" class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Android Notifications</h1>
+
+        <!-- Device selector -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Device</label>
+            <select x-model="deviceID" @change="loadNotifications()" class="w-full p-2 border rounded">
+                <template x-for="device in devices" :key="device">
+                    <option :value="device" x-text="device"></option>
+                </template>
+            </select>
+        </div>
+
+        <!-- Date range and search -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                <input type="date" x-model="startDate" @change="loadNotifications()" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                <input type="date" x-model="endDate" @change="loadNotifications()" class="w-full p-2 border rounded">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <input type="text" x-model="searchQuery" @input.debounce="loadNotifications()" placeholder="Search notifications..." class="w-full p-2 border rounded">
+            </div>
+        </div>
+
+        <!-- Error message -->
+        <div x-show="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+            <span x-text="error"></span>
+        </div>
+
+        <!-- Loading indicator -->
+        <div x-show="loading" class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+
+        <!-- Notifications list -->
+        <div x-show="!loading" class="bg-white rounded-lg shadow overflow-hidden">
+            <template x-if="notifications.length === 0">
+                <div class="p-4 text-center text-gray-500">
+                    No notifications found
+                </div>
+            </template>
+            <template x-for="notification in notifications" :key="notification.ID">
+                <div class="border-b last:border-b-0 p-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold" x-text="notification.title"></h3>
+                            <p class="text-gray-600 mt-1" x-text="notification.message"></p>
+                            <div class="mt-2 text-sm text-gray-500">
+                                <span x-text="new Date(notification.timestamp).toLocaleString()"></span>
+                                <span x-show="notification.from" class="ml-2">
+                                    From: <span x-text="notification.from"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <span x-text="notification.package_name"></span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</body>
+</html> 
