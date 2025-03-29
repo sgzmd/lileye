@@ -58,24 +58,32 @@ The server will start on `http://localhost:8080`. You can access the web interfa
 To populate the database with test notifications, run the provided script:
 
 ```bash
-./scripts/load_test_data.sh
+go run scripts/load_test_data.go
 ```
 
-This script will create test notifications for:
-- Personal phone (phone1)
-- Work phone (phone2)
-- Tablet (tablet1)
+The script supports several command-line flags:
+- `-days-before`: Number of days before today to generate notifications (default: 14)
+- `-days-after`: Number of days after today to generate notifications (default: 14)
+- `-min-per-day`: Minimum number of notifications per day (default: 2)
+- `-max-per-day`: Maximum number of notifications per day (default: 5)
+- `-delay`: Delay between notifications in milliseconds (default: 500)
+- `-server`: Server URL (default: http://localhost:8080)
+- `-devices`: Comma-separated list of devices (default: phone1,phone2,tablet1)
 
-The notifications include:
-- Social media notifications
-- Work-related notifications
+Example with custom parameters:
+```bash
+go run scripts/load_test_data.go -days-before 7 -days-after 0 -min-per-day 5 -max-per-day 10 -devices "pixel7,ipad"
+```
+
+The script will generate various types of notifications:
+- Social media notifications (WhatsApp, Messenger, Telegram, etc.)
+- Email notifications (Gmail, Outlook, Yahoo Mail)
 - System notifications
-- Entertainment apps
-- Different timestamps (current day and previous day)
+- Entertainment app notifications (Netflix, Spotify, YouTube)
 
 After running the script, you can:
 1. Visit `http://localhost:8080` in your browser
-2. Use the device selector to switch between devices (phone1, phone2, tablet1)
+2. Use the device selector to switch between devices
 3. Use the date picker to view notifications from different days
 4. Use the search box to find specific notifications
 
