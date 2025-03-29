@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -58,6 +60,17 @@ var (
 	emailSenders    = []string{"boss@company.com", "hr@company.com", "team@project.com", "support@service.com"}
 )
 
+// Command line flags
+var (
+	daysBefore    = flag.Int("days-before", 14, "Number of days before today to generate notifications")
+	daysAfter     = flag.Int("days-after", 14, "Number of days after today to generate notifications")
+	minPerDay     = flag.Int("min-per-day", 2, "Minimum number of notifications per day")
+	maxPerDay     = flag.Int("max-per-day", 5, "Maximum number of notifications per day")
+	delayMs       = flag.Int("delay", 500, "Delay between notifications in milliseconds")
+	serverURL     = flag.String("server", "http://localhost:8080", "Server URL")
+	selectedDevices = flag.String("devices", "phone1,phone2,tablet1", "Comma-separated list of devices to generate notifications for")
+)
+
 func randomTime(date time.Time) time.Time {
 	hour := rand.Intn(24)
 	minute := rand.Intn(60)
@@ -79,7 +92,8 @@ func sendNotification(n Notification) error {
 		return fmt.Errorf("error marshaling notification: %v", err)
 	}
 
-	resp, err := http.Post("http://localhost:8080/api/notifications", "application/json", bytes.NewBuffer(data))
+	url := fmt.Sprintf("%s/api/notifications", *serverURL)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("error sending notification: %v", err)
 	}
@@ -94,15 +108,21 @@ func sendNotification(n Notification) error {
 
 func generateNotifications() error {
 	now := time.Now().UTC()
-	twoWeeksAgo := now.AddDate(0, 0, -14)
-	twoWeeksFromNow := now.AddDate(0, 0, 14)
+	startDate := now.AddDate(0, 0, -*daysBefore)
+	endDate := now.AddDate(0, 0, *daysAfter)
+
+	// Parse selected devices
+	devices := strings.Split(*selectedDevices, ",")
+	if len(devices) == 0 {
+		return fmt.Errorf("no devices specified")
+	}
 
 	for _, device := range devices {
 		fmt.Printf("Generating notifications for %s...\n", device)
 		
-		for date := twoWeeksAgo; date.Before(twoWeeksFromNow); date = date.AddDate(0, 0, 1) {
-			// Generate 2-5 notifications per day
-			numNotifications := rand.Intn(4) + 2
+		for date := startDate; date.Before(endDate); date = date.AddDate(0, 0, 1) {
+			// Generate random number of notifications for this day
+			numNotifications := rand.Intn(*maxPerDay-*minPerDay+1) + *minPerDay
 			
 			for i := 0; i < numNotifications; i++ {
 				appCategory := rand.Intn(4)
@@ -161,7 +181,7 @@ func generateNotifications() error {
 				}
 
 				// Add a small delay between notifications
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(time.Duration(*delayMs) * time.Millisecond)
 			}
 		}
 	}
@@ -170,6 +190,7 @@ func generateNotifications() error {
 }
 
 func main() {
+	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	
 	if err := generateNotifications(); err != nil {
