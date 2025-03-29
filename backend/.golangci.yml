@@ -1,0 +1,63 @@
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - misspell
+    - gosec
+    - gocritic
+    - gocyclo
+    - goimports
+    - revive
+    - goconst
+    - gomnd
+    - gocognit
+    - errorlint
+
+run:
+  deadline: 5m
+  skip-dirs:
+    - vendor
+    - third_party
+    - testdata
+    - examples
+    - Godeps
+    - builtin
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+        - gocyclo
+        - gocognit
+        - gomnd
+    - path: scripts/load_test_data.go
+      linters:
+        - gosec
+        - gocyclo
+        - gocognit
+        - gomnd
+        - goconst
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+  goconst:
+    min-len: 2
+    min-occurrences: 2 
