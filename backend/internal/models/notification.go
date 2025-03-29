@@ -15,4 +15,9 @@ type Notification struct {
 	PackageName string    `json:"package_name" gorm:"not null;index"`
 	From        string    `json:"from" gorm:"index"`
 	DeviceID    string    `json:"device_id" gorm:"not null;index"`
+	DeviceName  string    `json:"device_name"`
+}
+
+func (Notification) TableName() string {
+	return "notifications"
 } 
