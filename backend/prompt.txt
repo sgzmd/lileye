@@ -1,0 +1,42 @@
+We need to create a backend for the service which will post information about 
+Android notifications to the server.
+
+The backend is very lightweight, QPS will be minimal. Please keep the structure 
+simple and easy to understand, do not over engineer, do not create any unnecessary  abstractions.
+
+For the database, use something very simple and lightweight. It can be document
+based or key-value based, or SQL based, but it should be lightweigth and portable.
+
+Minimize use of JavaScript. 
+
+The format of notification will be as follows:
+
+```json
+{
+    "title": "Notification Title",
+    "message": "Notification Message",
+    "timestamp": "2021-01-01T00:00:00Z",
+    "package_name": "com.example.app"
+    "from": "Other User Name" // optional, can be user or chat group name
+    "device_id": "abc1234" // arbitrary string
+}
+```
+
+The server will store all notifications in the database, propose which 
+database to use.
+
+The server will also provide a web interface for the user to view notifications.
+The UI of the web interface should include:
+
+1. Choosing which device to show notifications for
+2. List of notifications
+3. Option to navigate notifications for a specific day, using date picker
+4. Option to show notification for a range of days
+5. Option to quickly search for a notification by title, message or from field
+
+The UI should be responsive and adaptive, and should work on desktop, tablet and mobile.
+
+Propose technologies to use for the backend and the web interface.
+
+Before generating anything, suggest me a plan of action, what to do first, what to do next 
+and wait for my approval before continuing.
