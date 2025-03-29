@@ -1,40 +1,127 @@
 #!/bin/bash
 
-# Device 1: Personal Phone
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"WhatsApp Message","message":"Hey, how are you?","timestamp":"2024-03-20T10:00:00Z","package_name":"com.whatsapp","from":"Alice","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Gmail","message":"Meeting tomorrow","timestamp":"2024-03-20T10:15:00Z","package_name":"com.google.gmail","from":"boss@company.com","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Calendar Reminder","message":"Dentist appointment","timestamp":"2024-03-20T11:00:00Z","package_name":"com.google.calendar","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Telegram","message":"New group message","timestamp":"2024-03-20T11:30:00Z","package_name":"org.telegram.messenger","from":"Family Group","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Battery Low","message":"20% battery remaining","timestamp":"2024-03-20T12:00:00Z","package_name":"android.system","device_id":"phone1"}'
+# Get current date and calculate date range
+CURRENT_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+TWO_WEEKS_AGO=$(date -u -v-14d +"%Y-%m-%dT%H:%M:%SZ")
+TWO_WEEKS_FROM_NOW=$(date -u -v+14d +"%Y-%m-%dT%H:%M:%SZ")
 
-# Device 2: Work Phone
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Slack","message":"New message in #general","timestamp":"2024-03-20T09:00:00Z","package_name":"com.slack","from":"John","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Microsoft Teams","message":"Team meeting starting","timestamp":"2024-03-20T09:30:00Z","package_name":"com.microsoft.teams","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Outlook","message":"Project deadline reminder","timestamp":"2024-03-20T10:00:00Z","package_name":"com.microsoft.outlook","from":"Project Manager","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Jira","message":"Task assigned to you","timestamp":"2024-03-20T10:30:00Z","package_name":"com.atlassian.jira","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Google Drive","message":"Document shared with you","timestamp":"2024-03-20T11:00:00Z","package_name":"com.google.drive","from":"colleague@company.com","device_id":"phone2"}'
+# Function to generate a random time within a date
+generate_random_time() {
+    local date=$1
+    local hour=$((RANDOM % 24))
+    local minute=$((RANDOM % 60))
+    local second=$((RANDOM % 60))
+    echo "${date}T${hour}:${minute}:${second}Z"
+}
 
-# Device 3: Tablet
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Netflix","message":"New episode available","timestamp":"2024-03-20T18:00:00Z","package_name":"com.netflix.android","device_id":"tablet1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Kindle","message":"Reading goal achieved","timestamp":"2024-03-20T19:00:00Z","package_name":"com.amazon.kindle","device_id":"tablet1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"YouTube","message":"Channel uploaded new video","timestamp":"2024-03-20T20:00:00Z","package_name":"com.google.youtube","from":"TechChannel","device_id":"tablet1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Spotify","message":"New playlist suggestion","timestamp":"2024-03-20T21:00:00Z","package_name":"com.spotify.music","device_id":"tablet1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Weather Alert","message":"Rain expected tomorrow","timestamp":"2024-03-20T22:00:00Z","package_name":"com.weather.app","device_id":"tablet1"}'
+# Function to send a notification
+send_notification() {
+    local title=$1
+    local message=$2
+    local timestamp=$3
+    local package_name=$4
+    local from=$5
+    local device_id=$6
 
-# Previous Day Notifications (Phone 1)
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Instagram","message":"New follower","timestamp":"2024-03-19T10:00:00Z","package_name":"com.instagram.android","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Facebook","message":"Birthday reminder","timestamp":"2024-03-19T11:00:00Z","package_name":"com.facebook.katana","from":"Events","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Twitter","message":"Trending in your area","timestamp":"2024-03-19T12:00:00Z","package_name":"com.twitter.android","device_id":"phone1"}'
+    curl -X POST http://localhost:8080/api/notifications \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"title\": \"$title\",
+            \"message\": \"$message\",
+            \"timestamp\": \"$timestamp\",
+            \"package_name\": \"$package_name\",
+            \"from\": \"$from\",
+            \"device_id\": \"$device_id\"
+        }"
+}
 
-# Previous Day Notifications (Phone 2)
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Calendar","message":"Team lunch tomorrow","timestamp":"2024-03-19T15:00:00Z","package_name":"com.google.calendar","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Slack","message":"New channel invitation","timestamp":"2024-03-19T16:00:00Z","package_name":"com.slack","from":"Team Lead","device_id":"phone2"}'
+# Generate notifications for different devices and apps
+DEVICES=("phone1" "phone2" "tablet1")
+MESSAGING_APPS=(
+    "com.whatsapp" "WhatsApp"
+    "com.facebook.orca" "Messenger"
+    "com.telegram" "Telegram"
+    "com.snapchat.android" "Snapchat"
+    "com.instagram.android" "Instagram"
+)
 
-# Previous Day Notifications (Tablet)
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Prime Video","message":"Continue watching","timestamp":"2024-03-19T20:00:00Z","package_name":"com.amazon.primevideo","device_id":"tablet1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Game Update","message":"New level unlocked","timestamp":"2024-03-19T21:00:00Z","package_name":"com.game.example","device_id":"tablet1"}'
+EMAIL_APPS=(
+    "com.google.android.gm" "Gmail"
+    "com.microsoft.office.outlook" "Outlook"
+    "com.yahoo.mobile.client.android.mail" "Yahoo Mail"
+)
 
-# System Notifications
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"System Update","message":"Android update available","timestamp":"2024-03-20T09:00:00Z","package_name":"android.system","device_id":"phone1"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Security Alert","message":"New device signed in","timestamp":"2024-03-20T10:00:00Z","package_name":"com.google.android.gms","device_id":"phone2"}'
-curl -X POST http://localhost:8080/api/notifications -H "Content-Type: application/json" -d '{"title":"Storage Alert","message":"Storage space low","timestamp":"2024-03-20T11:00:00Z","package_name":"android.system","device_id":"tablet1"}' 
+SYSTEM_APPS=(
+    "com.android.systemui" "System"
+    "com.google.android.apps.nexuslauncher" "Launcher"
+    "com.android.settings" "Settings"
+)
+
+ENTERTAINMENT_APPS=(
+    "com.netflix.mediaclient" "Netflix"
+    "com.spotify.music" "Spotify"
+    "com.google.android.youtube" "YouTube"
+    "com.amazon.avod.thirdpartyclient" "Prime Video"
+)
+
+# Generate notifications for each device
+for device in "${DEVICES[@]}"; do
+    echo "Generating notifications for $device..."
+    
+    # Generate notifications for each day in the range
+    current=$TWO_WEEKS_AGO
+    while [ "$current" \< "$TWO_WEEKS_FROM_NOW" ]; do
+        # Generate 2-5 notifications per day
+        num_notifications=$((RANDOM % 4 + 2))
+        
+        for ((i=1; i<=num_notifications; i++)); do
+            # Generate random time for this notification
+            timestamp=$(generate_random_time "${current%%T*}")
+            
+            # Randomly select an app category
+            app_category=$((RANDOM % 4))
+            
+            case $app_category in
+                0) # Messaging apps
+                    app_index=$((RANDOM % ${#MESSAGING_APPS[@]} / 2))
+                    package_name=${MESSAGING_APPS[$((app_index * 2))]}
+                    app_name=${MESSAGING_APPS[$((app_index * 2 + 1))]}
+                    from=("John" "Alice" "Bob" "Charlie" "Diana" "Emma")
+                    from_name=${from[$((RANDOM % ${#from[@]}))]}
+                    send_notification "New message from $from_name" "Hey, how are you?" "$timestamp" "$package_name" "$from_name" "$device"
+                    ;;
+                    
+                1) # Email apps
+                    app_index=$((RANDOM % ${#EMAIL_APPS[@]} / 2))
+                    package_name=${EMAIL_APPS[$((app_index * 2))]}
+                    app_name=${EMAIL_APPS[$((app_index * 2 + 1))]}
+                    from=("boss@company.com" "hr@company.com" "team@project.com" "support@service.com")
+                    from_name=${from[$((RANDOM % ${#from[@]}))]}
+                    send_notification "New email from $from_name" "Important update about the project" "$timestamp" "$package_name" "$from_name" "$device"
+                    ;;
+                    
+                2) # System apps
+                    app_index=$((RANDOM % ${#SYSTEM_APPS[@]} / 2))
+                    package_name=${SYSTEM_APPS[$((app_index * 2))]}
+                    app_name=${SYSTEM_APPS[$((app_index * 2 + 1))]}
+                    send_notification "System Update Available" "A new system update is ready to install" "$timestamp" "$package_name" "System" "$device"
+                    ;;
+                    
+                3) # Entertainment apps
+                    app_index=$((RANDOM % ${#ENTERTAINMENT_APPS[@]} / 2))
+                    package_name=${ENTERTAINMENT_APPS[$((app_index * 2))]}
+                    app_name=${ENTERTAINMENT_APPS[$((app_index * 2 + 1))]}
+                    send_notification "New content available" "Check out the latest releases" "$timestamp" "$package_name" "$app_name" "$device"
+                    ;;
+            esac
+            
+            # Add a small delay between notifications
+            sleep 0.5
+        done
+        
+        # Move to next day
+        current=$(date -u -v+1d -j -f "%Y-%m-%dT%H:%M:%SZ" "$current" +"%Y-%m-%dT%H:%M:%SZ")
+    done
+done
+
+echo "Test data generation complete!" 
