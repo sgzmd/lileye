@@ -134,7 +134,7 @@
 
                 async loadDevices() {
                     try {
-                        const response = await fetch('/api/notifications/devices');
+                        const response = await fetch('/api/devices');
                         this.devices = await response.json();
                     } catch (error) {
                         console.error('Error loading devices:', error);

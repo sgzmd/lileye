@@ -27,7 +27,6 @@ func (h *NotificationHandler) RegisterRoutes(r *gin.Engine) {
 	r.GET("/api/notifications/device/:deviceID", h.GetNotificationsByDevice)
 	r.GET("/api/notifications/device/:deviceID/range", h.GetNotificationsByDateRange)
 	r.GET("/api/notifications/device/:deviceID/search", h.SearchNotifications)
-	r.GET("/api/devices", h.GetDevices)
 	r.DELETE("/api/notifications/all", h.DeleteAllNotifications)
 }
 
@@ -121,17 +120,6 @@ func (h *NotificationHandler) SearchNotifications(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, notifications)
-}
-
-// GetDevices handles retrieving all unique device IDs
-func (h *NotificationHandler) GetDevices(c *gin.Context) {
-	devices, err := h.storage.GetDevices()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, devices)
 }
 
 // DeleteAllNotifications handles deleting all notifications
