@@ -1,10 +1,12 @@
 package com.sgzmd.lileye.service
 
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.sgzmd.lileye.model.Message
+import com.sgzmd.lileye.model.Notification
 import com.sgzmd.lileye.queue.MessageQueue
+import java.time.Instant
 
 class NotificationListener : NotificationListenerService() {
     var messageQueue: MessageQueue = MessageQueue()
@@ -15,12 +17,13 @@ class NotificationListener : NotificationListenerService() {
             val notification = sbn.notification
             val extras = notification.extras
 
-            val message = Message(
+            val message = Notification(
                 packageName = sbn.packageName,
                 title = extras.getString("android.title")?.toString(),
                 text = extras.getString("android.text")?.toString(),
-                timestamp = sbn.postTime,
-                extras = extras.keySet().associateWith { extras.get(it)?.toString() ?: "" }
+                timestamp = Instant.ofEpochMilli(sbn.postTime),
+                extras = extras.keySet().associateWith { extras.get(it)?.toString() ?: "" },
+                deviceId = Settings.Secure.ANDROID_ID
             )
 
             messageQueue.addMessage(message)
@@ -29,12 +32,13 @@ class NotificationListener : NotificationListenerService() {
             Log.e(TAG, "Error processing notification", e)
             // Even if there's an error, try to create a basic message
             messageQueue.addMessage(
-                Message(
+                Notification(
                     packageName = sbn.packageName,
                     title = null,
                     text = null,
-                    timestamp = sbn.postTime,
-                    extras = emptyMap()
+                    timestamp = Instant.ofEpochMilli(sbn.postTime),
+                    extras = emptyMap(),
+                    deviceId = Settings.Secure.ANDROID_ID
                 )
             )
         }

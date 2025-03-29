@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -35,15 +36,19 @@ func (h *NotificationHandler) RegisterRoutes(r *gin.Engine) {
 func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 	var notification models.Notification
 	if err := c.ShouldBindJSON(&notification); err != nil {
+		log.Printf("Error binding notification JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := h.storage.Create(&notification); err != nil {
+		log.Printf("Error creating notification: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("Created notification: ID=%d, Title=%s, DeviceID=%s, PackageName=%s", 
+		notification.ID, notification.Title, notification.DeviceID, notification.PackageName)
 	c.JSON(http.StatusCreated, notification)
 }
 

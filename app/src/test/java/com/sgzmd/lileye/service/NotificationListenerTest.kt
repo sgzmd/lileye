@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.os.UserHandle
 import android.service.notification.StatusBarNotification
 import androidx.test.core.app.ApplicationProvider
-import com.sgzmd.lileye.model.Message
+import com.sgzmd.lileye.model.Notification
 import com.sgzmd.lileye.queue.MessageQueue
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -65,9 +65,9 @@ class NotificationListenerTest {
 
         notificationListener.onNotificationPosted(sbn)
 
-        val messages: List<Message> = testMessageQueue.getMessages()
+        val messages: List<com.sgzmd.lileye.model.Notification> = testMessageQueue.getMessages()
         assertEquals(1, messages.size)
-        val message: Message = messages[0]
+        val message: com.sgzmd.lileye.model.Notification = messages[0]
         assertEquals("com.example.test", message.packageName)
         assertEquals("Real Title", message.title)
         assertEquals("Real Text", message.text)
