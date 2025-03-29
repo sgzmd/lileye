@@ -118,4 +118,48 @@ func TestNotificationStorage_GetDevices(t *testing.T) {
 	assert.Len(t, devices, 2)
 	assert.Contains(t, devices, "device1")
 	assert.Contains(t, devices, "device2")
+}
+
+func TestDeleteAll(t *testing.T) {
+	_, storage := setupTestDB(t)
+
+	// Create some test notifications
+	notifications := []models.Notification{
+		{
+			DeviceID: "test-device-1",
+			Title:    "Test Notification 1",
+			Message:  "Test Message 1",
+			Timestamp: time.Now(),
+		},
+		{
+			DeviceID: "test-device-2",
+			Title:    "Test Notification 2",
+			Message:  "Test Message 2",
+			Timestamp: time.Now(),
+		},
+	}
+
+	for _, n := range notifications {
+		err := storage.Create(&n)
+		if err != nil {
+			t.Fatalf("Failed to create test notification: %v", err)
+		}
+	}
+
+	// Delete all notifications
+	err := storage.DeleteAll()
+	if err != nil {
+		t.Fatalf("Failed to delete all notifications: %v", err)
+	}
+
+	// Verify all notifications are deleted
+	var count int64
+	err = storage.db.Model(&models.Notification{}).Count(&count).Error
+	if err != nil {
+		t.Fatalf("Failed to count notifications: %v", err)
+	}
+
+	if count != 0 {
+		t.Errorf("Expected 0 notifications, got %d", count)
+	}
 } 

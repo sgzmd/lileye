@@ -28,6 +28,7 @@ func (h *NotificationHandler) RegisterRoutes(r *gin.Engine) {
 	r.GET("/api/notifications/device/:deviceID/range", h.GetNotificationsByDateRange)
 	r.GET("/api/notifications/device/:deviceID/search", h.SearchNotifications)
 	r.GET("/api/devices", h.GetDevices)
+	r.DELETE("/api/notifications/all", h.DeleteAllNotifications)
 }
 
 // CreateNotification handles the creation of a new notification
@@ -131,4 +132,14 @@ func (h *NotificationHandler) GetDevices(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, devices)
+}
+
+// DeleteAllNotifications handles deleting all notifications
+func (h *NotificationHandler) DeleteAllNotifications(c *gin.Context) {
+	if err := h.storage.DeleteAll(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "All notifications deleted successfully"})
 } 

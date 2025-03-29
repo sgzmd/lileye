@@ -63,4 +63,9 @@ func (s *NotificationStorage) GetDevices() ([]string, error) {
 	var devices []string
 	err := s.db.Model(&models.Notification{}).Distinct().Pluck("device_id", &devices).Error
 	return devices, err
+}
+
+// DeleteAll deletes all notifications from the database
+func (s *NotificationStorage) DeleteAll() error {
+	return s.db.Exec("DELETE FROM notifications").Error
 } 
