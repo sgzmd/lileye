@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -28,7 +29,7 @@ type AppInfo struct {
 
 var (
 	devices = []string{"phone1", "phone2", "tablet1"}
-	
+
 	messagingApps = []AppInfo{
 		{"com.whatsapp", "WhatsApp"},
 		{"com.facebook.orca", "Messenger"},
@@ -57,19 +58,44 @@ var (
 	}
 
 	messagingSenders = []string{"John", "Alice", "Bob", "Charlie", "Diana", "Emma"}
-	emailSenders    = []string{"boss@company.com", "hr@company.com", "team@project.com", "support@service.com"}
+	emailSenders     = []string{"boss@company.com", "hr@company.com", "team@project.com", "support@service.com"}
 )
 
 // Command line flags
 var (
-	daysBefore    = flag.Int("days-before", 14, "Number of days before today to generate notifications")
-	daysAfter     = flag.Int("days-after", 14, "Number of days after today to generate notifications")
-	minPerDay     = flag.Int("min-per-day", 2, "Minimum number of notifications per day")
-	maxPerDay     = flag.Int("max-per-day", 5, "Maximum number of notifications per day")
-	delayMs       = flag.Int("delay", 500, "Delay between notifications in milliseconds")
-	serverURL     = flag.String("server", "http://localhost:8080", "Server URL")
+	daysBefore      = flag.Int("days-before", 14, "Number of days before today to generate notifications")
+	daysAfter       = flag.Int("days-after", 14, "Number of days after today to generate notifications")
+	minPerDay       = flag.Int("min-per-day", 2, "Minimum number of notifications per day")
+	maxPerDay       = flag.Int("max-per-day", 5, "Maximum number of notifications per day")
+	delayMs         = flag.Int("delay", 500, "Delay between notifications in milliseconds")
+	serverURL       = flag.String("server", "http://localhost:8080", "Server URL")
 	selectedDevices = flag.String("devices", "phone1,phone2,tablet1", "Comma-separated list of devices to generate notifications for")
 )
+
+func validateFlags() error {
+	if *daysBefore < 0 {
+		return fmt.Errorf("days-before must be non-negative")
+	}
+	if *daysAfter < 0 {
+		return fmt.Errorf("days-after must be non-negative")
+	}
+	if *minPerDay < 1 {
+		return fmt.Errorf("min-per-day must be at least 1")
+	}
+	if *maxPerDay < *minPerDay {
+		return fmt.Errorf("max-per-day must be greater than or equal to min-per-day")
+	}
+	if *delayMs < 0 {
+		return fmt.Errorf("delay must be non-negative")
+	}
+	if *serverURL == "" {
+		return fmt.Errorf("server URL cannot be empty")
+	}
+	if *selectedDevices == "" {
+		return fmt.Errorf("devices cannot be empty")
+	}
+	return nil
+}
 
 func randomTime(date time.Time) time.Time {
 	hour := rand.Intn(24)
@@ -99,6 +125,11 @@ func sendNotification(n Notification) error {
 	}
 	defer resp.Body.Close()
 
+	// Read and discard response body
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return fmt.Errorf("error reading response body: %v", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -119,15 +150,15 @@ func generateNotifications() error {
 
 	for _, device := range devices {
 		fmt.Printf("Generating notifications for %s...\n", device)
-		
+
 		for date := startDate; date.Before(endDate); date = date.AddDate(0, 0, 1) {
 			// Generate random number of notifications for this day
 			numNotifications := rand.Intn(*maxPerDay-*minPerDay+1) + *minPerDay
-			
+
 			for i := 0; i < numNotifications; i++ {
 				appCategory := rand.Intn(4)
 				var notification Notification
-				
+
 				switch appCategory {
 				case 0: // Messaging apps
 					app := randomApp(messagingApps)
@@ -140,7 +171,7 @@ func generateNotifications() error {
 						From:        sender,
 						DeviceID:    device,
 					}
-					
+
 				case 1: // Email apps
 					app := randomApp(emailApps)
 					sender := randomSender(emailSenders)
@@ -152,7 +183,7 @@ func generateNotifications() error {
 						From:        sender,
 						DeviceID:    device,
 					}
-					
+
 				case 2: // System apps
 					app := randomApp(systemApps)
 					notification = Notification{
@@ -163,7 +194,7 @@ func generateNotifications() error {
 						From:        "System",
 						DeviceID:    device,
 					}
-					
+
 				case 3: // Entertainment apps
 					app := randomApp(entertainmentApps)
 					notification = Notification{
@@ -191,7 +222,14 @@ func generateNotifications() error {
 
 func main() {
 	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+	
+	if err := validateFlags(); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create a new random source for each run
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	
 	if err := generateNotifications(); err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -199,4 +237,4 @@ func main() {
 	}
 	
 	fmt.Println("Test data generation complete!")
-} 
+}
