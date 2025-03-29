@@ -19,13 +19,15 @@ func main() {
 	}
 
 	// Auto migrate the schema
-	if err := db.AutoMigrate(&models.Notification{}); err != nil {
+	if err := db.AutoMigrate(&models.Notification{}, &models.Device{}); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
 	// Initialize storage and handlers
 	notificationStorage := storage.NewNotificationStorage(db)
+	deviceStorage := storage.NewDeviceStorage(db)
 	notificationHandler := handlers.NewNotificationHandler(notificationStorage)
+	deviceHandler := handlers.NewDeviceHandler(deviceStorage)
 
 	// Initialize Gin router
 	r := gin.Default()
@@ -36,6 +38,7 @@ func main() {
 
 	// Register API routes
 	notificationHandler.RegisterRoutes(r)
+	deviceHandler.RegisterRoutes(r)
 
 	// Serve index page
 	r.GET("/", func(c *gin.Context) {
